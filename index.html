@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Astrologer — Input</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="description" content="Enter birth details, pick a method, generate shareable link, and view predictions — all client‑side.">
+  <style>
+    .card{ @apply bg-white rounded-2xl shadow p-5; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-900">
+  <main class="max-w-4xl mx-auto p-6">
+    <header class="mb-8">
+      <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Astrologer — Client‑side</h1>
+      <p class="mt-2 text-slate-600">Fill details → generate link → <b>view predictions</b>. No server required.</p>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Form -->
+      <section class="card space-y-4">
+        <h2 class="text-xl font-semibold">Birth Details</h2>
+
+        <label class="block">
+          <span class="text-sm text-slate-700">Full Name</span>
+          <input id="name" class="mt-1 w-full rounded-xl border p-3" placeholder="e.g., Saurabh">
+        </label>
+
+        <div class="grid grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-sm text-slate-700">Gender</span>
+            <select id="gender" class="mt-1 w-full rounded-xl border p-3">
+              <option>Male</option>
+              <option>Female</option>
+              <option>Other</option>
+              <option>Prefer not to say</option>
+            </select>
+          </label>
+
+          <label class="block">
+            <span class="text-sm text-slate-700">Methodology</span>
+            <select id="method" class="mt-1 w-full rounded-xl border p-3">
+              <option value="shailendra-jha">Shailendra Jha – Financial Astrology (PVNR-style)</option>
+              <option value="pvnr-classic">P. V. N. Rao – Classic Jyotish</option>
+              <option value="custom">Custom Saved Astrologer</option>
+            </select>
+          </label>
+        </div>
+
+        <label id="custom-wrap" class="block hidden">
+          <span class="text-sm text-slate-700">Custom Methodology Code/Name</span>
+          <input id="custom_method" class="mt-1 w-full rounded-xl border p-3" placeholder="e.g., shailendra-jha-v2">
+        </label>
+
+        <div class="grid grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-sm text-slate-700">Date of Birth</span>
+            <input id="dob" type="date" class="mt-1 w-full rounded-xl border p-3">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-700">Time of Birth</span>
+            <input id="tob" type="time" class="mt-1 w-full rounded-xl border p-3">
+          </label>
+        </div>
+
+        <label class="block">
+          <span class="text-sm text-slate-700">Place of Birth (City, State, Country)</span>
+          <input id="place" class="mt-1 w-full rounded-xl border p-3" placeholder="e.g., Chanpatia, Bihar, India">
+        </label>
+
+        <div class="grid grid-cols-3 gap-4">
+          <label class="block">
+            <span class="text-sm text-slate-700">Timezone (optional)</span>
+            <input id="tz" class="mt-1 w-full rounded-xl border p-3" placeholder="Asia/Kolkata or +05:30">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-700">Latitude (opt.)</span>
+            <input id="lat" class="mt-1 w-full rounded-xl border p-3" placeholder="26.90" inputmode="decimal">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-700">Longitude (opt.)</span>
+            <input id="lon" class="mt-1 w-full rounded-xl border p-3" placeholder="84.20" inputmode="decimal">
+          </label>
+        </div>
+
+        <div class="flex flex-wrap gap-3 pt-2">
+          <button id="btn-link" class="rounded-2xl px-4 py-2 bg-slate-900 text-white shadow hover:opacity-90">Generate Link</button>
+          <a id="btn-view" class="rounded-2xl px-4 py-2 border shadow inline-block" href="#">See Prediction</a>
+          <button id="btn-payload" class="rounded-2xl px-4 py-2 border shadow">Show Payload</button>
+        </div>
+      </section>
+
+      <!-- Output -->
+      <section class="space-y-4">
+        <div class="card">
+          <h2 class="text-xl font-semibold">Shareable Link</h2>
+          <div id="linkbox" class="mt-3 p-3 rounded-xl border bg-slate-50 break-all text-sm min-h-[3rem]"></div>
+        </div>
+
+        <div class="card">
+          <h2 class="text-xl font-semibold">Prediction Engine Payload</h2>
+          <div class="mt-3 p-3 rounded-xl border bg-slate-50 overflow-auto text-xs">
+            <pre id="payloadbox" class="whitespace-pre-wrap">Click 'Show Payload' to generate.</pre>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="mt-10 text-xs text-slate-500">
+      <p>This version computes predictions entirely <b>client-side</b> (demo rules). You can swap in your own engine later.</p>
+    </footer>
+  </main>
+
+  <script>
+    function qs(id){ return document.getElementById(id); }
+    function setVisible(el, show){ el.classList.toggle("hidden", !show); }
+
+    const nameEl = qs("name"); const genderEl = qs("gender");
+    const dobEl = qs("dob"); const tobEl = qs("tob");
+    const placeEl = qs("place"); const tzEl = qs("tz");
+    const latEl = qs("lat"); const lonEl = qs("lon");
+    const methodEl = qs("method"); const customWrap = qs("custom-wrap"); const customMethodEl = qs("custom_method");
+
+    const linkBox = qs("linkbox"); const payloadBox = qs("payloadbox"); const btnView = qs("btn-view");
+
+    methodEl.addEventListener("change", () => setVisible(customWrap, methodEl.value === "custom"));
+
+    function resultsBase(){
+      // Results page in the same repo
+      return location.origin + location.pathname.replace(/\/index\.html$/, "") + "results.html";
+    }
+
+    function buildLink(toResults){
+      const params = new URLSearchParams();
+      const set = (k,v)=>{ if(v) params.set(k,v); };
+      set("name", nameEl.value);
+      set("gender", genderEl.value);
+      set("dob", dobEl.value);
+      set("tob", tobEl.value);
+      set("place", placeEl.value);
+      set("tz", tzEl.value);
+      set("lat", latEl.value);
+      set("lon", lonEl.value);
+      set("method", methodEl.value);
+      if (methodEl.value === "custom" && customMethodEl.value) set("custom_method", customMethodEl.value);
+      const base = toResults ? resultsBase() : (location.origin + location.pathname.replace(/\/index\.html$/, "") + "index.html");
+      return base + "?" + params.toString();
+    }
+
+    function showLink(){ linkBox.textContent = buildLink(true); btnView.href = buildLink(true); }
+    function combineDateTime(dateStr, timeStr){
+      if(!dateStr){ return {local: "", iso: ""}; }
+      const time = timeStr || "00:00";
+      const local = dateStr + " " + time;
+      let iso = ""; try { iso = new Date(dateStr + "T" + time + ":00").toISOString(); } catch(e){}
+      return {local, iso};
+    }
+    function showPayload(){
+      const dt = combineDateTime(dobEl.value, tobEl.value);
+      const payload = {
+        name: nameEl.value || null,
+        gender: genderEl.value || null,
+        birth: {
+          date: dobEl.value || null,
+          time: tobEl.value || null,
+          datetime_local: dt.local || null,
+          datetime_iso: dt.iso || null,
+          timezone: tzEl.value || null,
+          lat: latEl.value ? Number(latEl.value) : null,
+          lon: lonEl.value ? Number(lonEl.value) : null,
+          place: placeEl.value || null,
+        },
+        method: methodEl.value === "custom" ? (customMethodEl.value || "custom") : methodEl.value,
+        meta: { source: "All-in-one GH Pages v1", created_at: new Date().toISOString() }
+      };
+      payloadBox.textContent = JSON.stringify(payload, null, 2);
+    }
+
+    // Prefill from query when coming back from results page
+    (function(){
+      const params = new URLSearchParams(location.search);
+      if (params.toString()){
+        const get=(k)=>params.get(k)||"";
+        nameEl.value = get("name");
+        genderEl.value = get("gender") || "Male";
+        dobEl.value = get("dob");
+        tobEl.value = get("tob");
+        placeEl.value = get("place");
+        tzEl.value = get("tz");
+        latEl.value = get("lat");
+        lonEl.value = get("lon");
+        methodEl.value = get("method") || "shailendra-jha";
+        customMethodEl.value = get("custom_method") || "";
+        setVisible(customWrap, methodEl.value === "custom");
+      }
+      showLink();
+    })();
+
+    qs("btn-link").addEventListener("click", (e)=>{ e.preventDefault(); showLink(); });
+    qs("btn-payload").addEventListener("click", (e)=>{ e.preventDefault(); showPayload(); });
+
+    [nameEl, genderEl, dobEl, tobEl, placeEl, tzEl, latEl, lonEl, methodEl, customMethodEl].forEach(el => {
+      el.addEventListener("input", showLink);
+    });
+  </script>
+</body>
+</html>
