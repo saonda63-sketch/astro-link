@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Astrologer Predictions – Live</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="description" content="Generate shareable astrologer links and fetch live predictions via API."/>
+  <style>
+    .spinner{width:24px;height:24px;border:3px solid #cbd5e1;border-top-color:#0f172a;border-radius:50%;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-slate-50 to-white text-slate-900">
+  <main class="max-w-4xl mx-auto p-6">
+    <header class="mb-8">
+      <h1 class="text-3xl md:text-4xl font-bold tracking-tight">Astrologer Predictions</h1>
+      <p class="mt-2 text-slate-600">Enter birth details → generate a shareable link → <b>get prediction</b> (via API).</p>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Form -->
+      <section class="space-y-4 bg-white rounded-2xl shadow p-5">
+        <h2 class="text-xl font-semibold">Birth Details</h2>
+
+        <label class="block">
+          <span class="text-sm text-slate-700">Full Name</span>
+          <input id="name" class="mt-1 w-full rounded-xl border p-3" placeholder="e.g., Saurabh">
+        </label>
+
+        <div class="grid grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-sm text-slate-700">Gender</span>
+            <select id="gender" class="mt-1 w-full rounded-xl border p-3">
+              <option>Male</option>
+              <option>Female</option>
+              <option>Other</option>
+              <option>Prefer not to say</option>
+            </select>
+          </label>
+
+          <label class="block">
+            <span class="text-sm text-slate-700">Methodology</span>
+            <select id="method" class="mt-1 w-full rounded-xl border p-3">
+              <option value="shailendra-jha">Shailendra Jha – Financial Astrology (PVNR-style)</option>
+              <option value="pvnr-classic">P. V. N. Rao – Classic Jyotish</option>
+              <option value="custom">Custom Saved Astrologer</option>
+            </select>
+          </label>
+        </div>
+
+        <label id="custom-wrap" class="block hidden">
+          <span class="text-sm text-slate-700">Custom Methodology Code/Name</span>
+          <input id="custom_method" class="mt-1 w-full rounded-xl border p-3" placeholder="e.g., shailendra-jha-v2">
+        </label>
+
+        <div class="grid grid-cols-2 gap-4">
+          <label class="block">
+            <span class="text-sm text-slate-700">Date of Birth</span>
+            <input id="dob" type="date" class="mt-1 w-full rounded-xl border p-3">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-700">Time of Birth</span>
+            <input id="tob" type="time" class="mt-1 w-full rounded-xl border p-3">
+          </label>
+        </div>
+
+        <label class="block">
+          <span class="text-sm text-slate-700">Place of Birth (City, State, Country)</span>
+          <input id="place" class="mt-1 w-full rounded-xl border p-3" placeholder="e.g., Chanpatia, Bihar, India">
+        </label>
+
+        <div class="grid grid-cols-3 gap-4">
+          <label class="block">
+            <span class="text-sm text-slate-700">Timezone (optional)</span>
+            <input id="tz" class="mt-1 w-full rounded-xl border p-3" placeholder="Asia/Kolkata or +05:30">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-700">Latitude (opt.)</span>
+            <input id="lat" class="mt-1 w-full rounded-xl border p-3" placeholder="26.90" inputmode="decimal">
+          </label>
+          <label class="block">
+            <span class="text-sm text-slate-700">Longitude (opt.)</span>
+            <input id="lon" class="mt-1 w-full rounded-xl border p-3" placeholder="84.20" inputmode="decimal">
+          </label>
+        </div>
+
+        <div class="flex flex-wrap gap-3 pt-2">
+          <button id="btn-link" class="rounded-2xl px-4 py-2 bg-slate-900 text-white shadow hover:opacity-90">Generate Link</button>
+          <button id="btn-payload" class="rounded-2xl px-4 py-2 border shadow">Prepare Payload</button>
+          <button id="btn-predict" class="rounded-2xl px-4 py-2 border shadow">Get Prediction</button>
+          <span id="loading" class="hidden items-center gap-2 text-slate-600"><span class="spinner"></span>Fetching…</span>
+        </div>
+      </section>
+
+      <!-- Output -->
+      <section class="space-y-4">
+        <div class="bg-white rounded-2xl shadow p-5">
+          <h2 class="text-xl font-semibold">Shareable Link</h2>
+          <div id="linkbox" class="mt-3 p-3 rounded-xl border bg-slate-50 break-all text-sm min-h-[3rem]"></div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow p-5">
+          <h2 class="text-xl font-semibold">Prediction Engine Payload</h2>
+          <div class="mt-3 p-3 rounded-xl border bg-slate-50 overflow-auto text-xs">
+            <pre id="payloadbox" class="whitespace-pre-wrap">Click 'Prepare Payload' to generate.</pre>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow p-5">
+          <h2 class="text-xl font-semibold">Prediction Result</h2>
+          <div id="resultbox" class="mt-3 p-3 rounded-xl border bg-slate-50 text-sm min-h-[3rem]">No prediction yet.</div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="mt-10 text-xs text-slate-500">
+      <p>Tip: Set your API URL in <code>window.PREDICTION_API</code>. If not set, the page will compute a simple on-device demo result.</p>
+    </footer>
+  </main>
+
+  <script>
+    // ====== CONFIG ======
+    window.PREDICTION_API = ""; // set your Apps Script Web App URL or any API endpoint
+    window.PREDICTION_API_KEY = ""; // optional
+
+    function qs(id){ return document.getElementById(id); }
+    function setVisible(el, show){ el.classList.toggle("hidden", !show); }
+
+    const nameEl = qs("name"); const genderEl = qs("gender");
+    const dobEl = qs("dob"); const tobEl = qs("tob");
+    const placeEl = qs("place"); const tzEl = qs("tz");
+    const latEl = qs("lat"); const lonEl = qs("lon");
+    const methodEl = qs("method"); const customWrap = qs("custom-wrap"); const customMethodEl = qs("custom_method");
+
+    const linkBox = qs("linkbox"); const payloadBox = qs("payloadbox"); const resultBox = qs("resultbox"); const loading = qs("loading");
+
+    methodEl.addEventListener("change", () => setVisible(customWrap, methodEl.value === "custom"));
+
+    function currentBase(){ return location.origin + location.pathname.replace(/\/index\.html$/, "") + "index.html"; }
+    function buildLink(){
+      const params = new URLSearchParams();
+      const set = (k,v)=>{ if(v) params.set(k,v); };
+      set("name", nameEl.value);
+      set("gender", genderEl.value);
+      set("dob", dobEl.value);
+      set("tob", tobEl.value);
+      set("place", placeEl.value);
+      set("tz", tzEl.value);
+      set("lat", latEl.value);
+      set("lon", lonEl.value);
+      set("method", methodEl.value);
+      if (methodEl.value === "custom" && customMethodEl.value) set("custom_method", customMethodEl.value);
+      return currentBase() + "?" + params.toString();
+    }
+    function combineDateTime(dateStr, timeStr){
+      if(!dateStr){ return {local: "", iso: ""}; }
+      const time = timeStr || "00:00";
+      const local = dateStr + " " + time;
+      let iso = "";
+      try { iso = new Date(dateStr + "T" + time + ":00").toISOString(); } catch(e){}
+      return {local, iso};
+    }
+    function buildPayload(){
+      const dt = combineDateTime(dobEl.value, tobEl.value);
+      return {
+        name: nameEl.value || null,
+        gender: genderEl.value || null,
+        birth: {
+          date: dobEl.value || null,
+          time: tobEl.value || null,
+          datetime_local: dt.local || null,
+          datetime_iso: dt.iso || null,
+          timezone: tzEl.value || null,
+          lat: latEl.value ? Number(latEl.value) : null,
+          lon: lonEl.value ? Number(lonEl.value) : null,
+          place: placeEl.value || null,
+        },
+        method: methodEl.value === "custom" ? (customMethodEl.value || "custom") : methodEl.value,
+        meta: { source: "Astrologer Predictions Site v2", created_at: new Date().toISOString() }
+      };
+    }
+
+    function showLink(){ linkBox.textContent = buildLink(); }
+    function showPayload(){ payloadBox.textContent = JSON.stringify(buildPayload(), null, 2); }
+
+    // Simple on-device demo prediction (fallback when no API configured)
+    function demoPredict(payload){
+      const z = sunSign(payload.birth.date);
+      const m = payload.method;
+      const hint = (m.includes("shailendra") ? "Focus on disciplined risk and Saturn-friendly timing." :
+                    m.includes("pvnr") ? "Check dasha/transit overlaps for concrete windows." :
+                    "Stay aligned with your custom framework.");
+      return `Sign: ${z || "Unknown"}
+Method: ${payload.method}
+Guidance: ${hint}
+Note: This is a demo prediction. Connect a real API for full readings.`;
+    }
+
+    function sunSign(dateStr){
+      if(!dateStr) return "";
+      const d = new Date(dateStr + "T00:00:00Z");
+      const m = d.getUTCMonth()+1, day = d.getUTCDate();
+      const cuts = [
+        ["Capricorn",1,19],["Aquarius",2,18],["Pisces",3,20],["Aries",4,19],["Taurus",5,20],["Gemini",6,20],
+        ["Cancer",7,22],["Leo",8,22],["Virgo",9,22],["Libra",10,22],["Scorpio",11,21],["Sagittarius",12,21],["Capricorn",12,31]
+      ];
+      for (const [sign, cm, cd] of cuts){
+        if ((m < cm) || (m==cm && day <= cd)) return sign;
+      }
+      return "Sagittarius";
+    }
+
+    async function getPrediction(){
+      const payload = buildPayload();
+      setVisible(loading, true); resultBox.textContent = "";
+      try{
+        const url = (window.PREDICTION_API || "").trim();
+        if (!url){
+          await new Promise(r => setTimeout(r, 300));
+          resultBox.textContent = demoPredict(payload);
+          return;
+        }
+        const headers = { "Content-Type": "application/json" };
+        if (window.PREDICTION_API_KEY) headers["Authorization"] = "Bearer " + window.PREDICTION_API_KEY;
+        const res = await fetch(url, { method:"POST", headers, body: JSON.stringify(payload) });
+        const text = await res.text();
+        let out = text;
+        try{
+          const j = JSON.parse(text);
+          out = j.resultText || j.result || j.message || text;
+        }catch(_){}
+        resultBox.textContent = out || "No result.";
+      }catch(err){
+        resultBox.textContent = "Error: " + err;
+      }finally{
+        setVisible(loading, false);
+      }
+    }
+
+    // Prefill from query
+    (function(){
+      const params = new URLSearchParams(location.search);
+      function get(k){ return params.get(k) || ""; }
+      if(params.toString()){
+        nameEl.value = get("name");
+        genderEl.value = get("gender") || "Male";
+        dobEl.value = get("dob");
+        tobEl.value = get("tob");
+        placeEl.value = get("place");
+        tzEl.value = get("tz");
+        latEl.value = get("lat");
+        lonEl.value = get("lon");
+        methodEl.value = get("method") || "shailendra-jha";
+        customMethodEl.value = get("custom_method") || "";
+        setVisible(customWrap, methodEl.value === "custom");
+      }
+      showLink();
+    })();
+
+    // Wire buttons
+    document.getElementById("btn-link").addEventListener("click", (e)=>{ e.preventDefault(); showLink(); });
+    document.getElementById("btn-payload").addEventListener("click", (e)=>{ e.preventDefault(); showPayload(); });
+    document.getElementById("btn-predict").addEventListener("click", (e)=>{ e.preventDefault(); getPrediction(); });
+
+    [nameEl, genderEl, dobEl, tobEl, placeEl, tzEl, latEl, lonEl, methodEl, customMethodEl].forEach(el => {
+      el.addEventListener("input", showLink);
+    });
+  </script>
+</body>
+</html>
